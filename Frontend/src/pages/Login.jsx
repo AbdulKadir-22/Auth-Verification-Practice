@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { AiOutlineGoogle } from "react-icons/ai";
 import { FaApple } from "react-icons/fa";
 import { NavLink, useNavigate } from "react-router-dom";
+import axios from "axios";
 import "../styles/login.css";
 
 const Login = () => {
   const navigate = useNavigate();
 
-  // Only keep fields needed for login
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -32,26 +32,25 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const response = await axios.post(
+        "http://localhost:5000/api/user/login",
+        formData,
+        { withCredentials: true } // 🍪 Enables cookie/token transport
+      );
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (response.ok) {
-        // Save token if present
-        if (data.token) {
-          localStorage.setItem("authToken", data.token);
-        }
-        // Navigate to dashboard or home
-        navigate("/dashboard");
-      } else {
-        setError(data.message || "Login failed. Please try again.");
+      if (data.token) {
+        localStorage.setItem("authToken", data.token); // Optional
       }
+
+      navigate("/dashboard"); // 🎯 Redirect on success
     } catch (err) {
-      setError("Something went wrong. Please try again later.");
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Something went wrong. Please try again later.");
+      }
       console.error("Login error:", err);
     } finally {
       setLoading(false);
@@ -64,8 +63,7 @@ const Login = () => {
         <div className="login-form-section">
           <h2>Welcome Back</h2>
           <div className="login-link">
-            Don’t have an account?{" "}
-            <NavLink to="/">Register</NavLink>
+            Don’t have an account? <NavLink to="/">Register</NavLink>
           </div>
 
           {error && <p className="error-text">{error}</p>}
@@ -100,11 +98,7 @@ const Login = () => {
               </label>
             </div>
 
-            <button
-              type="submit"
-              className="login-btn"
-              disabled={loading}
-            >
+            <button type="submit" className="login-btn" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
             </button>
 
